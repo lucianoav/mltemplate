@@ -55,12 +55,13 @@ def _finalize_figure(fig: plt.Figure) -> None:
 # ── Funções tabulares ────────────────────────────────────────────────────────
 
 def dataset_info(df: pd.DataFrame) -> pd.DataFrame:
-    """Retorna DataFrame com tipo, nulos e % nulos por coluna."""
+    """Retorna DataFrame com tipo, nulos, % nulos, valores únicos e % únicos por coluna."""
     return pd.DataFrame({
         "dtype": df.dtypes,
         "nulls": df.isnull().sum(),
         "null_pct": (df.isnull().sum() / len(df) * 100).round(2),
         "nunique": df.nunique(),
+        "unique_pct": (df.nunique() / len(df) * 100).round(2),
     })
 
 
