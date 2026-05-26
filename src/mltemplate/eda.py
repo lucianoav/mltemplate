@@ -136,19 +136,20 @@ def correlation_matrix(
 
 def category_target_rate(df: pd.DataFrame, config: ProjectConfig) -> dict[str, pd.DataFrame]:
     """
-    Retorna dicionário com a taxa (média) do target por nível de cada feature categórica.
-    Classificação: coluna 'rate'. Regressão: colunas 'mean' e 'std'.
+    Retorna dicionário com contagem e taxa do target por nível de cada feature categórica.
+    Classificação: colunas count_<v> e rate_<v> para cada valor da target (suporta multiclasse).
+    Regressão: colunas 'mean' e 'std'.
     """
     cat_cols = [c for c in config.categorical_features if c in df.columns]
     result = {}
     for col in cat_cols:
         if config.problem_type == "classification":
-            grp = (
-                df.groupby(col, observed=True)[config.target]
-                .agg(count="count", rate="mean")
-                .round({"rate": 4})
-                .sort_values("rate", ascending=False)
-            )
+            counts = pd.crosstab(df[col], df[config.target])
+            rates  = pd.crosstab(df[col], df[config.target], normalize="index").round(4)
+            counts.columns = [f"count_{v}" for v in counts.columns]
+            rates.columns  = [f"rate_{v}"  for v in rates.columns]
+            grp = pd.concat([counts.sum(axis=1).rename("count"), counts, rates], axis=1)
+            grp = grp.sort_values(rates.columns[-1], ascending=False)
         else:
             grp = (
                 df.groupby(col, observed=True)[config.target]
