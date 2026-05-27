@@ -67,7 +67,7 @@ StorageManager.save_submission()
 | `data/manager.py` | `DataManager` — load, split, versionamento de feature sets |
 | `features/engineer.py` | `FeatureEngineer` — impute, encode, scale, expand_poly |
 | `tuning/adapters.py` | `XGBoostAdapter`, `LightGBMAdapter`, `CatBoostAdapter`, `SklearnAdapter` |
-| `tuning/tuner.py` | `OptunaTuner`, `GridTuner`, `RandomTuner` — retornam `TuningResult` |
+| `tuning/tuner.py` | `OptunaTuner` — retorna `TuningResult` |
 | `ensemble.py` | `EnsembleCreator` — pesos por SLSQP com CV |
 | `eda.py` | Funções de análise exploratória — retornam DataFrames ou `Figure` |
 

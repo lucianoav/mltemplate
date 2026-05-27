@@ -55,7 +55,7 @@ dm = DataManager(storage, config)
 | `data/manager.py` | `DataManager` | load_raw, split, save/load feature sets versionados |
 | `features/engineer.py` | `FeatureEngineer` | drop, impute, encode, scale, expand_poly (fit só no treino) |
 | `tuning/adapters.py` | `XGBoostAdapter`, `LightGBMAdapter`, `CatBoostAdapter`, `SklearnAdapter` | Encapsulam early stopping, verbosity, cat_features por framework |
-| `tuning/tuner.py` | `OptunaTuner`, `GridTuner`, `RandomTuner` | Otimização; retornam `TuningResult` |
+| `tuning/tuner.py` | `OptunaTuner` | Otimização; retorna `TuningResult` |
 | `ensemble.py` | `EnsembleCreator` | Pesos por SLSQP com CV; `fit()` → `predict_proba()` / `predict()` |
 | `eda.py` | funções | Retornam DataFrames ou `plt.Figure` — sem `display()`, sem `print()` |
 
@@ -101,6 +101,6 @@ class MyCustomAdapter:
 
 ### Scoring Suportado
 
-`OptunaTuner` e `GridTuner`/`RandomTuner`: `"roc_auc"`, `"accuracy"`, `"rmse"`, `"mae"`
+`OptunaTuner`: `"roc_auc"`, `"accuracy"`, `"rmse"`, `"mae"`
 
 `EnsembleCreator.fit()`: `"roc_auc"`, `"accuracy"`
