@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score, mean_absolute_error, mean_squared_error, roc_auc_score
@@ -52,6 +53,67 @@ class TuningResult:
     score:      float
     trials:     pd.DataFrame = field(default_factory=pd.DataFrame)
     test_score: float | None = None
+    scoring:    str = "roc_auc"
+
+    def improvement_table(self) -> pd.DataFrame:
+        """Retorna os trials em que o melhor resultado acumulado melhorou."""
+        if self.trials.empty:
+            return pd.DataFrame(columns=["trial", "score", "delta", "best_so_far"])
+
+        completed = (
+            self.trials[self.trials["state"] == "COMPLETE"][["number", "value"]]
+            .rename(columns={"number": "trial", "value": "score"})
+            .sort_values("trial")
+            .reset_index(drop=True)
+        )
+        if completed.empty:
+            return pd.DataFrame(columns=["trial", "score", "delta", "best_so_far"])
+
+        maximize = _DIRECTION.get(self.scoring, "maximize") == "maximize"
+        completed["best_so_far"] = (
+            completed["score"].cummax() if maximize else completed["score"].cummin()
+        )
+        milestones = completed[completed["best_so_far"] != completed["best_so_far"].shift(1)].copy()
+        milestones["delta"] = milestones["best_so_far"].diff()
+        return milestones[["trial", "score", "delta", "best_so_far"]].reset_index(drop=True)
+
+    def plot_optimization_history(self) -> plt.Figure:
+        """Gráfico de evolução do melhor score ao longo dos trials."""
+        if self.trials.empty:
+            raise RuntimeError("Nenhum trial disponível para plotar.")
+
+        completed = (
+            self.trials[self.trials["state"] == "COMPLETE"][["number", "value"]]
+            .rename(columns={"number": "trial", "value": "score"})
+            .sort_values("trial")
+            .reset_index(drop=True)
+        )
+
+        maximize = _DIRECTION.get(self.scoring, "maximize") == "maximize"
+        best_so_far = completed["score"].cummax() if maximize else completed["score"].cummin()
+
+        best_idx = best_so_far.idxmax() if maximize else best_so_far.idxmin()
+
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.scatter(
+            completed["trial"], completed["score"],
+            color="gray", alpha=0.4, s=20, label="Trials",
+        )
+        ax.plot(
+            completed["trial"], best_so_far,
+            color="#1f77b4", linewidth=2, label="Melhor acumulado",
+        )
+        ax.scatter(
+            completed.loc[best_idx, "trial"], best_so_far.iloc[best_idx],
+            color="darkorange", s=150, marker="*", zorder=5,
+            label=f"Melhor: {best_so_far.iloc[best_idx]:.5f}",
+        )
+        ax.set_xlabel("Trial")
+        ax.set_ylabel(self.scoring)
+        ax.set_title(f"Optuna — histórico de otimização ({self.scoring})")
+        ax.legend()
+        fig.tight_layout()
+        return fig
 
 
 class OptunaTuner:
@@ -118,7 +180,7 @@ class OptunaTuner:
 
         study = optuna.create_study(
             direction=_DIRECTION[scoring],
-            pruner=optuna.pruners.HyperbandPruner(),
+            pruner=optuna.pruners.NopPruner() if holdout else optuna.pruners.HyperbandPruner(),
             sampler=optuna.samplers.TPESampler(seed=self.config.random_state),
         )
         study.optimize(
@@ -142,6 +204,7 @@ class OptunaTuner:
             score=study.best_value,
             trials=study.trials_dataframe(),
             test_score=test_score,
+            scoring=scoring,
         )
 
     def _make_cv(self):
